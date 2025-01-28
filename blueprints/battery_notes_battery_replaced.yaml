@@ -1,0 +1,41 @@
+blueprint:
+  name: Battery Notes - Battery Replaced
+  description: Set the battery replaced automatically when the battery increased
+  author: andrew-codechimp
+  source_url: https://raw.githubusercontent.com/andrew-codechimp/HA-Battery-Notes/main/docs/blueprints/battery_notes_battery_replaced.yaml
+  domain: automation
+
+  input:
+    additional_conditions:
+      name: Additional conditions
+      description: |
+        Extra conditions you may want to add to this automation
+        (Example: Home occupied)
+      default: []
+      selector:
+        condition:
+    on_replaced_actions:
+      name: On Replaced Actions
+      description: User actions to run on battery replacement, the battery is marked as replaced automatically. Use any event data via trigger.event.data.xxx
+      default: []
+      selector:
+        action:
+
+triggers:
+  - trigger: event
+    event_type: battery_notes_battery_increased
+
+conditions:
+  - alias: User pick
+    condition: !input additional_conditions
+
+actions:
+  - action: battery_notes.set_battery_replaced
+    data:
+      device_id: "{{ trigger.event.data.device_id }}"
+      source_entity_id: "{{ trigger.event.data.source_entity_id }}"
+  - alias: "Run user on replaced actions"
+    choose: []
+    default: !input 'on_replaced_actions'
+
+mode: queued
