@@ -1,0 +1,67 @@
+blueprint:
+  name: Battery Notes - Battery Not Reported
+  description: Actions to perform when the battery not reported event is fired, note this cannot be run manually as it examines event triggers.
+  author: andrew-codechimp
+  source_url: https://raw.githubusercontent.com/andrew-codechimp/HA-Battery-Notes/main/docs/blueprints/battery_notes_battery_not_reported.yaml
+  domain: automation
+  input:
+    not_reported_notification:
+      name: Battery Not Reported Notification
+      description: Create a persistent notification when the battery is not reported.
+      default: true
+      selector:
+        boolean: {}
+    excluded_devices:
+      name: Devices to exclude (Optional)
+      description: Devices that you do not want to trigger this automation.
+      default:
+      selector:
+        device:
+          multiple: true
+          entity:
+            - integration: battery_notes
+    additional_conditions:
+      name: Additional conditions
+      description: |
+        Extra conditions you may want to add to this automation
+        (Example: Home occupied)
+      default: []
+      selector:
+        condition:
+    user_actions:
+      name: User Actions
+      description: User actions to run on battery not reported.
+      default: []
+      selector:
+        action: {}
+variables:
+  not_reported_notification: !input not_reported_notification
+  excluded_devices: !input excluded_devices
+triggers:
+- trigger: event
+  event_type: battery_notes_battery_not_reported
+  alias: Battery not reported
+conditions:
+  - condition: template
+    value_template: |-
+      {{ trigger.event.data.device_id not in excluded_devices}}
+  - alias: User pick
+    condition: !input additional_conditions
+actions:
+- if:
+  - condition: template
+    value_template: '{{ not_reported_notification }}'
+  then:
+  - action: persistent_notification.create
+    data:
+      title: '{{ trigger.event.data.device_name }} Battery Not Reported'
+      message: 'The device has not reported its battery level for {{ trigger.event.data.battery_last_reported_days
+        }} days {{ ''\n'' -}} Its last reported level was {{ trigger.event.data.battery_last_reported_level
+        }}% {{ ''\n'' -}} You need {{ trigger.event.data.battery_quantity }}× {{ trigger.event.data.battery_type
+        }}'
+      notification_id: 'battery_notes_not_reported {{ trigger.event.data.device_id }}-{{ trigger.event.data.source_entity_id }}'
+  - alias: Run user actions
+    choose: []
+    default: !input user_actions
+mode: queued
+max: 30
